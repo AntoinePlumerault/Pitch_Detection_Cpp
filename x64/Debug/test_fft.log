@@ -1,0 +1,9 @@
+﻿  plot.cpp
+  MusicRecorder.cpp
+d:\users\documents\visual studio 2015\projects\test_fft\test_fft\musicrecorder.cpp(28): warning C4267: 'argument' : conversion de 'size_t' en 'const int', perte possible de données
+  main.cpp
+d:\users\documents\visual studio 2015\projects\test_fft\test_fft\main.cpp(32): warning C4267: 'argument' : conversion de 'size_t' en 'unsigned int', perte possible de données
+  fft.cpp
+d:\users\documents\visual studio 2015\projects\test_fft\test_fft\fft.cpp(41): warning C4244: 'argument' : conversion de 'size_t' en 'const std::complex<double>::_Ty', perte possible de données
+  Génération de code en cours...
+  test_fft.vcxproj -> D:\Users\Documents\Visual Studio 2015\Projects\test_fft\x64\Debug\test_fft.exe
