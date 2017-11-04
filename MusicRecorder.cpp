@@ -1,13 +1,6 @@
-#include <SFML/Audio.hpp>
-#include <complex>
-#include <valarray>
-#include <iostream>
-#include <algorithm>
-#include "fft.hpp"
+#include "MusicRecorder.hpp"
 #include "notes_en.hpp"
 #include "notes_fr.hpp"
-#include "MusicRecorder.hpp"
-
 
 
 std::string freq2note(double freq, std::string language)
@@ -58,18 +51,28 @@ double* ACF(const double* signal, size_t size)
 	return ACF;
 }
 
-double* PSD(const double* signal, size_t size)
+double* PSD(const double* signal, size_t size, CQT Q)
 {
 	//=============== FFT ===============//
-	CArray FT; FT.resize(size);
+	Complex * FT;
+	FT = new Complex[size];
+	//CArray FT; FT.resize(size);
 	for (size_t t = 0; t < size; ++t)
-		FT[t] = Complex(signal[t], 0);
-	fft(FT);
+	{
+		//FT[t] = Complex(signal[t], 0);
+		FT[t] = Complex(signal[t], 0.0);
+		//std::cout << "  " << signal[t] << " <=> " << FT[t];
+	}
+	//fft(FT);
+	Q.transform(FT);
 
 	//============== POWER ==============//
-	double* PSD = new double[size / 2];;
+	double* PSD;
+	PSD = new double[size / 2];;
 	for (size_t freq_i = 0; freq_i < size / 2; ++freq_i)
 		PSD[freq_i] = norm(FT[freq_i]) / (size);
+
+	delete[] FT;
 
 	return PSD;
 }
@@ -81,6 +84,10 @@ MusicRecorder::MusicRecorder(double sample_rate, double sample_time, double lag)
 	_buffer_i = 0;
 	_buffer_size = (size_t)(sample_rate * sample_time);
 	_buffer = new double[_buffer_size];
+	double f_min = 440.0*(pow(2.0, (40-69.0) / 12.0));
+	double f_max = 440.0*(pow(2.0, (123-69.0) / 12.0));
+	CQT Q(_buffer_size/2, 84, f_min, f_max, sample_rate);
+	QT = Q;
 }
 
 bool MusicRecorder::onProcessSamples(const sf::Int16* samples, std::size_t sampleCount)
@@ -96,8 +103,15 @@ bool MusicRecorder::onProcessSamples(const sf::Int16* samples, std::size_t sampl
 std::vector<double> MusicRecorder::getFreqs(size_t n)
 {
 	std::vector<double> freqs;
-	double* acf = ACF(_buffer, _buffer_size);
-	double* psd = PSD(acf, _buffer_size / 2);
+	// double* acf = ACF(_buffer, _buffer_size);
+	// double* psd = PSD(acf, _buffer_size/2, QT);
+	double* psd = PSD(_buffer, _buffer_size, QT);
+	
+	for (size_t i = 0; i < 84; ++i)
+	{
+		freqs.push_back(psd[i]);
+	}
+	/*
 	size_t delta = 3;
 	do
 	{
@@ -120,8 +134,9 @@ std::vector<double> MusicRecorder::getFreqs(size_t n)
 
 		n -= 1;
 	} while (n > 0);
+	*/
 
-	delete[] acf;
+	//delete[] acf;
 	delete[] psd;
 	return freqs;
 }

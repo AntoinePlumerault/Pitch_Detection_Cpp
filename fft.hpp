@@ -1,17 +1,17 @@
-#ifndef FFT_H
-#define FFT_H
+#ifndef FFT_HPP
+#define FFT_HPP 
 
 #include <complex>
-#include <valarray>
+#include <math.h>
+#include <vector>
+#include <iostream>
 
-
-
-const double PI = 3.141592653589793238460;
+#define PI 3.14159265359
 
 typedef std::complex<double> Complex;
-typedef std::valarray<Complex> CArray;
 
-void fft(CArray& x);
-void ifft(CArray& x);
+void separate(Complex *X, const size_t N);
+void fft(Complex *X, const size_t N);
 
-#endif
+#endif 
+

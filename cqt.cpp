@@ -1,87 +1,62 @@
-
 #include "cqt.hpp"
 
-#include <math.h>
 
-CArray arrange(size_t N) {
-	CArray A(N);
-	for (size_t i = 0; i < N; i++) {
-		A[i] = 1;
-	}
-	return A;
+
+CQT::CQT()
+{
+
 }
 
-CArray Cqt::cq_hanning_window(int length)
+CQT::CQT(size_t N, size_t K, double f_min, double f_max, double f_e) : CQT()
 {
-	CArray result(length, 0);
-
-	for (int j = 0; j < length; ++j) 
+	size_t n_octave = (size_t)round(log(f_max / f_min) / log(2));
+	size_t n_bins = K / n_octave;
+	double Q = 1.0 / (pow(2.0, 1.0 / n_bins) - 1.0);
+	double sigma_cqt;
+	m_N = N;
+	m_K = K;
+	m_kernels.resize(m_K);
+	m_omega_e = 2.0*PI*f_e;
+	m_omega_cqt = new double[m_K];
+	m_Delta_cqt = new size_t[m_K];
+	for (size_t k_cq = 0; k_cq < K; ++k_cq)
 	{
-		float elem = 0.5f * (1 - (cos(j * 2 * PI / (float)(length - 1))));
-		result[j] = elem / (float)length;
-	}
-	return result;
-}
+		m_omega_cqt[k_cq] = 2.0*PI*f_min * (pow(2.0, (double)k_cq / (double)n_bins));
+		sigma_cqt = (double)N*m_omega_cqt[k_cq] / (PI * Q * 2.0*PI*f_e);
+		m_Delta_cqt[k_cq] = (size_t)ceil(6.0 * sigma_cqt / 2.0 );
+		
+		//std::cout << N << "   " << Q << "   " << n_bins << "   " << k_cq << "   " << sigma_cqt << "   " << m_omega_cqt[k_cq]  << "   " << m_Delta_cqt[k_cq] << std::endl;
+		std::cout << 2.0*m_N*m_omega_cqt[k_cq] / m_omega_e << std::endl;
+		
+		double * kernel;
+		kernel = new double[2 * m_Delta_cqt[k_cq] + 1];
+		m_kernels[k_cq] = kernel;
+		
+		//std::cout << 222222222222 << std::endl;
 
-Cqt::Cqt(float min_freq, float max_freq, size_t n_bins, float fs) 
-{
-	_min_freq = min_freq;
-	_max_freq = max_freq;
-	_n_bins = n_bins;
-	_fs = fs;
-	_ker = std::vector<CArray>();
-
-	_Q = 1.0 / (pow(2.0, 1.0 / n_bins) - 1.0);
-	_fftlen = int(pow(2.0, ceil(log(_Q * fs / min_freq) / log(2.0))));
-
-	int K = ceil(n_bins * log(max_freq / min_freq) / log(2.0));
-	double N;
-	for (size_t k = K; k > 0; k--)
-	{ 
-		N = ceil(_Q * fs / (min_freq * pow(2, (k - 1.0) / n_bins)));
-		const std::complex<double> j(0.0, 1.0);
-		CArray tmpKer = cq_hanning_window(N);
-		for (size_t i = 0; i < N; i++)
+		for (size_t k = 0; k < 2*m_Delta_cqt[k_cq] + 1; ++k)
 		{
-			tmpKer[i] *= exp(2.0 * PI*j*(double)_Q*(double)i/N)/N;
-			fft(tmpKer);
-			_ker.push_back(tmpKer);
+			m_kernels[k_cq][k] = exp(- 1.0 / 2.0 * pow((k - m_Delta_cqt[k_cq]) / (sigma_cqt), 2.0));
 		}
-		std::reverse(_ker.begin(), _ker.end());
 	}
-			N = ceil(self.Q * fs / (fmin * pow(2, (k - 1.0) / bins)))
-			tmpKer = wnd(N) * np.exp(2 * pi * 1j * self.Q * np.arange(N) / N) / N;
-		ker = np.fft.fft(tmpKer, self.fftlen)
-		# ker = np.select([abs(ker) > self.eps], [ker])
-		self.ker += [coo_matrix(ker, dtype = np.complex128)]
-		# print 'shape:', hstack(self.ker).tocsc().shape
-		self.ker.reverse()
-		self.ker = vstack(self.ker).tocsc().transpose().conj() / self.fftlen
 }
 
-fftwf_complex* cq_short_time_constq_transform(float* data, int data_length,
-	int min_freq, int max_freq, int sample_rate, int bins, int step,
-	int* height, int* width) {
-	int kernel_height, kernel_width;
-	cs_ci* ker = cq_make_kernel(min_freq, max_freq, sample_rate, bins,
-		&kernel_height, &kernel_width);
-	cs_ci* kern = cs_ci_transpose(ker, 1);
 
-	int max_index = rint(ceil(data_length / (float)kernel_height));
+Complex* CQT::transform(Complex * x) const
+{
+	fft(x, m_N);
 
-	int indices_size = (max_index - 1) * kernel_height / (double)step + 1;
-	int* indices = (int*)malloc(indices_size * sizeof(int));
-	for (int j = 0, k = 0; j <= (max_index - 1) * kernel_height; ++k, j += step)
-		indices[k] = j;
+	Complex * X;
+	X = new Complex[m_K];
 
-	fftwf_complex* result = cq_const_q_wrap(data, kern, kernel_height,
-		kernel_width, indices, indices_size);
-
-	cs_ci_spfree(ker);
-	cs_ci_spfree(kern);
-	free(indices);
-
-	*height = kernel_width;
-	*width = indices_size;
-	return result;
+	for (size_t k_cq = 0; k_cq < m_K; ++k_cq)
+	{
+		X[k_cq] = 0.0;
+		for (int k = -(int)m_Delta_cqt[k_cq]; k < m_Delta_cqt[k_cq] + 1; ++k)
+		{
+			X[k_cq] += m_kernels[k_cq][k + m_Delta_cqt[k_cq]] * x[(size_t)(round(k + 2.0*m_N*m_omega_cqt[k_cq] / m_omega_e))];
+		}
+		X[k_cq] = X[k_cq] / (double)m_N;
+	}
+	return X;
 }

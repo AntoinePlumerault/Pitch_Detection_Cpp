@@ -4,7 +4,7 @@
 #include <thread>
 #include <chrono>
 #include "plot.hpp"
-#include "fft.hpp"
+//#include "fft.hpp"
 #include "MusicRecorder.hpp"
 
 
@@ -24,12 +24,12 @@ int main()
 	sf::Font font;
 	font.loadFromFile("MonospaceTypewriter.ttf");
 
-	double sample_rate = 8000.0;
-	double sample_time = 1.0 / 3.0;
+	double sample_rate = 20000.0;
+	double sample_time = 4096.0 / 20000.0;
 
 	MusicRecorder recorder(sample_rate, sample_time, 1.0 / 10.0);
 	
-	recorder.start((size_t)sample_rate);
+	recorder.start((unsigned int)sample_rate);
 
 	while (window.isOpen())
 	{
@@ -46,6 +46,26 @@ int main()
 
 		//---------------------------------------------------//
 		std::vector<double> freqs = recorder.getFreqs(2);
+		std::vector<double> X; X.resize(84);
+		std::vector<double> Y; Y.resize(84);
+		for (size_t i = 0; i < 84; i++) {
+			Y[i] = freqs[i];
+			X[i] = (double)i;
+		}
+			
+		std::vector<sf::Vertex> list_points = plot(Y, X, "title", 84, 2);
+
+		for (unsigned int line_i = 1; line_i < list_points.size(); ++line_i)
+		{
+			sf::Vertex line[] =
+			{
+				list_points[line_i - 1],
+				list_points[line_i]
+			};
+			window.draw(line, 2, sf::Lines);
+		}
+		/*
+		std::vector<double> freqs = recorder.getFreqs(2);
 		for (double freq : freqs)
 			std::cout << freq << " - ";
 		std::cout << std::endl;
@@ -54,6 +74,8 @@ int main()
 		note1.setCharacterSize(150);
 		note1.setStyle(sf::Text::Bold);
 		window.draw(note1);
+		*/
+
 		//---------------------------------------------------//
 
 

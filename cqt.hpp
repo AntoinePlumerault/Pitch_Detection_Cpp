@@ -1,29 +1,30 @@
-#ifndef CQT_H
-#define CQT_H
+#ifndef CQT_HPP
+#define CQT_HPP
 
-#include <Eigen/SparseCore>
+#include <vector>
+#include <iostream>
+#include <complex>
+
 #include "fft.hpp"
 
-class Cqt
+#define PI 3.14159265359
+
+typedef std::complex<double> Complex;
+
+class CQT
 {
 public:
-	Cqt(float min_freq, float max_freq, size_t n_bins, float fs);
-	void run(CArray& x);
+	CQT();
+	CQT(size_t n, size_t n_bins, double f_min, double f_max, double f_e);
+	Complex * transform(Complex * x) const;
 
 private:
-	CArray cq_hanning_window(int length);
-
-	size_t _n_bins;
-	float _min_freq;
-	float _max_freq;
-	float _fs;
-	float _Q;
-	int _fftlen;
-	std::vector<CArray> _ker;
+	size_t m_N;
+	size_t m_K;
+	size_t* m_Delta_cqt;
+	double* m_omega_cqt;
+	double m_omega_e;
+	std::vector<double*> m_kernels;
 };
-
-double* ACF(const double* signal, size_t size);
-double* PSD(const double* signal, size_t size);
-std::string freq2note(double freq, std::string language);
 
 #endif

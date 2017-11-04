@@ -1,42 +1,41 @@
-//#include <complex>
-//#include <valarray>
 #include "fft.hpp"
 
-
-
-void fft(CArray& x)
+void separate(Complex * X, size_t N) 
 {
-	const size_t N = x.size();
-	if (N <= 1) return;
+	Complex * b;
+	b = new Complex[N/2];
 
-	// divide
-	CArray even = x[std::slice(0, N / 2, 2)];
-	CArray  odd = x[std::slice(1, N / 2, 2)];
-
-	// conquer
-	fft(even);
-	fft(odd);
-
-	// combine
-	for (size_t k = 0; k < N / 2; ++k)
+	for (size_t i = 0; i < N / 2; ++i)
 	{
-		Complex t = std::polar(1.0, -2 * PI * k / N) * odd[k];
-		x[k] = even[k] + t;
-		x[k + N / 2] = even[k] - t;
+		b[i] = X[2 * i + 1];
+		X[i] = X[2 * i];
 	}
+	for (size_t i = 0; i < N / 2; ++i)
+	{
+		X[i + N / 2] = b[i];
+	}
+	delete [] b;
 }
 
-void ifft(CArray& x)
+void fft(Complex * X, size_t N) 
 {
-// conjugate the complex numbers
-x = x.apply(std::conj);
+	if (N < 2)
+	{
+		// Do nothing
+	}
+	else
+	{
+		separate(X, N);     //even numbers to the left, odd numbers to the left 
+		fft(X, N / 2); 
+		fft(X + N / 2, N / 2);
 
-// forward fft
-fft(x);
-
-// conjugate the complex numbers again
-x = x.apply(std::conj);
-
-// scale the numbers
-x /= x.size();
+		for (size_t k = 0; k < N / 2; ++k)
+		{
+			Complex even = X[k];   
+			Complex odd  = X[k + N / 2];
+			Complex w    = std::exp(Complex(0, -2.*PI*k / N));
+			X[k]         = even + w * odd;
+			X[k + N / 2] = even - w * odd;
+		}
+	}
 }
