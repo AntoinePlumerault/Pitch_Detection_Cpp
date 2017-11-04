@@ -46,10 +46,10 @@ int main()
 
 		//---------------------------------------------------//
 		std::vector<double> freqs = recorder.getFreqs(2);
-		std::vector<double> X; X.resize(84);
-		std::vector<double> Y; Y.resize(84);
-		for (size_t i = 0; i < 84; i++) {
-			Y[i] = freqs[i];
+		std::vector<double> X; X.resize(168);
+		std::vector<double> Y; Y.resize(168);
+		for (size_t i = 0; i < 168; i++) {
+			Y[i] = log(1+freqs[i]);
 			X[i] = (double)i;
 		}
 			

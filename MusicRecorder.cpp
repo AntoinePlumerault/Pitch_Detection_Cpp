@@ -54,25 +54,32 @@ double* ACF(const double* signal, size_t size)
 double* PSD(const double* signal, size_t size, CQT Q)
 {
 	//=============== FFT ===============//
-	Complex * FT;
-	FT = new Complex[size];
+	Complex * sig;
+	sig = new Complex[size];
 	//CArray FT; FT.resize(size);
 	for (size_t t = 0; t < size; ++t)
 	{
 		//FT[t] = Complex(signal[t], 0);
-		FT[t] = Complex(signal[t], 0.0);
+		sig[t] = Complex(signal[t], 0.0);
 		//std::cout << "  " << signal[t] << " <=> " << FT[t];
 	}
 	//fft(FT);
-	Q.transform(FT);
+	Complex * QT = Q.transform(sig);
 
 	//============== POWER ==============//
 	double* PSD;
-	PSD = new double[size / 2];;
-	for (size_t freq_i = 0; freq_i < size / 2; ++freq_i)
-		PSD[freq_i] = norm(FT[freq_i]) / (size);
 
-	delete[] FT;
+	//PSD = new double[size / 2];;
+	//for (size_t freq_i = 0; freq_i < size / 2; ++freq_i)
+	//	PSD[freq_i] = norm(FT[freq_i]) / (size);
+
+	PSD = new double[168];;
+	for (size_t freq_i = 0; freq_i < 168; ++freq_i)
+	{
+		PSD[freq_i] = norm(QT[freq_i]) / 168.0;
+		//std::cout << freq_i << std::endl;
+	}
+	delete[] sig;
 
 	return PSD;
 }
@@ -86,7 +93,7 @@ MusicRecorder::MusicRecorder(double sample_rate, double sample_time, double lag)
 	_buffer = new double[_buffer_size];
 	double f_min = 440.0*(pow(2.0, (40-69.0) / 12.0));
 	double f_max = 440.0*(pow(2.0, (123-69.0) / 12.0));
-	CQT Q(_buffer_size/2, 84, f_min, f_max, sample_rate);
+	CQT Q(_buffer_size/2, 168, f_min, f_max, sample_rate);
 	QT = Q;
 }
 
@@ -106,8 +113,8 @@ std::vector<double> MusicRecorder::getFreqs(size_t n)
 	// double* acf = ACF(_buffer, _buffer_size);
 	// double* psd = PSD(acf, _buffer_size/2, QT);
 	double* psd = PSD(_buffer, _buffer_size, QT);
-	
-	for (size_t i = 0; i < 84; ++i)
+	//std::cout << _buffer_size << std::endl;
+	for (size_t i = 0; i < 168; ++i)
 	{
 		freqs.push_back(psd[i]);
 	}
