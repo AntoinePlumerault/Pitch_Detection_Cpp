@@ -110,8 +110,8 @@ bool MusicRecorder::onProcessSamples(const sf::Int16* samples, std::size_t sampl
 std::vector<double> MusicRecorder::getFreqs(size_t n)
 {
 	std::vector<double> freqs;
-	// double* acf = ACF(_buffer, _buffer_size);
-	// double* psd = PSD(acf, _buffer_size/2, QT);
+	//double* acf = ACF(_buffer, _buffer_size);
+	//double* psd = PSD(acf, _buffer_size/2, QT);
 	double* psd = PSD(_buffer, _buffer_size, QT);
 	//std::cout << _buffer_size << std::endl;
 	for (size_t i = 0; i < 168; ++i)

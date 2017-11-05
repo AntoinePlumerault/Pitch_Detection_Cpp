@@ -16,13 +16,15 @@ int main()
 		printf("error");
 	}
 
-	unsigned int height = 800;
+	unsigned int height = 800+400;
 	unsigned int length = 800;
 	unsigned int margin = 20;
 
-	sf::RenderWindow window(sf::VideoMode(height, length), "FFT");
+	sf::ContextSettings settings;
+	settings.antialiasingLevel = 8;
+	sf::RenderWindow window(sf::VideoMode(height, length), "FFT", sf::Style::Default, settings);
 	sf::Font font;
-	font.loadFromFile("MonospaceTypewriter.ttf");
+	//font.loadFromFile("MonospaceTypewriter.ttf");
 
 	double sample_rate = 20000.0;
 	double sample_time = 4096.0 / 20000.0;
@@ -30,6 +32,21 @@ int main()
 	MusicRecorder recorder(sample_rate, sample_time, 1.0 / 10.0);
 	
 	recorder.start((unsigned int)sample_rate);
+	
+	size_t past = 300;
+	std::vector<std::vector<double>> list_Y; list_Y.resize(past);
+	for (size_t i = 0; i < past; ++i)
+	{
+		std::vector<double> Y; Y.resize(168);
+		list_Y[i] = Y;
+	}
+	size_t buffer_pos = 0;
+
+	std::vector<double> X; X.resize(168);
+	for (size_t i = 0; i < 168; ++i)
+	{
+		X[i] = (double)i;
+	}
 
 	while (window.isOpen())
 	{
@@ -46,24 +63,34 @@ int main()
 
 		//---------------------------------------------------//
 		std::vector<double> freqs = recorder.getFreqs(2);
-		std::vector<double> X; X.resize(168);
-		std::vector<double> Y; Y.resize(168);
-		for (size_t i = 0; i < 168; i++) {
-			Y[i] = log(1+freqs[i]);
-			X[i] = (double)i;
-		}
-			
-		std::vector<sf::Vertex> list_points = plot(Y, X, "title", 84, 2);
 
-		for (unsigned int line_i = 1; line_i < list_points.size(); ++line_i)
+		for (size_t i = 0; i < 168; i++) 
 		{
-			sf::Vertex line[] =
-			{
-				list_points[line_i - 1],
-				list_points[line_i]
-			};
-			window.draw(line, 2, sf::Lines);
+			list_Y[buffer_pos][i] = log(1.0 + freqs[i]/10.0);
 		}
+		
+		for (size_t k = 1; k < past+1; ++k) 
+		{
+			std::vector<sf::Vertex> list_points = plot(list_Y[(buffer_pos + k) % past], X, "title", 168, 2.0, 2.1 * (1.0-((double)k / (double)past)));
+
+			for (unsigned int line_i = 1; line_i < list_points.size(); ++line_i)
+			{
+				sf::Vertex line[] =
+				{
+					list_points[line_i - 1],
+					list_points[line_i]
+				};
+				sf::Color color(127.0 ,
+					            255.0 * k / past, 
+					            255.0 * (1.0 - k / (3.0*past)), 
+					            255.0 * (past + k) / (2.0*past));
+				line[0].color = color;
+				line[1].color = color;
+				window.draw(line, 2, sf::Lines);
+			}
+		}
+
+		buffer_pos = (buffer_pos+1) % past;
 		/*
 		std::vector<double> freqs = recorder.getFreqs(2);
 		for (double freq : freqs)

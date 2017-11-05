@@ -26,7 +26,7 @@ CQT::CQT(size_t N, size_t K, double f_min, double f_max, double f_e) : CQT()
 		m_Delta_cqt[k_cq] = (size_t)ceil(6.0 * sigma_cqt / 2.0 );
 		
 		//std::cout << N << "   " << Q << "   " << n_bins << "   " << k_cq << "   " << sigma_cqt << "   " << m_omega_cqt[k_cq]  << "   " << m_Delta_cqt[k_cq] << std::endl;
-		std::cout << 2.0*m_N*m_omega_cqt[k_cq] / m_omega_e << std::endl;
+		//std::cout << 2.0*m_N*m_omega_cqt[k_cq] / m_omega_e << std::endl;
 		
 		double * kernel;
 		kernel = new double[2 * m_Delta_cqt[k_cq] + 1];
