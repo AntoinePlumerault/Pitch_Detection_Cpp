@@ -33,7 +33,7 @@ int main()
 	
 	recorder.start((unsigned int)sample_rate);
 	
-	size_t past = 300;
+	size_t past = 500;
 	std::vector<std::vector<double>> list_Y; list_Y.resize(past);
 	for (size_t i = 0; i < past; ++i)
 	{
@@ -47,6 +47,13 @@ int main()
 	{
 		std::vector<double> fY; fY.resize(168);
 		list_fY[i] = fY;
+	}
+
+	std::vector<std::vector<double>> list_smooth; list_smooth.resize(past);
+	for (size_t i = 0; i < past; ++i)
+	{
+		std::vector<double> smooth; smooth.resize(168);
+		list_smooth[i] = smooth;
 	}
 
 	std::vector<std::vector<double>> list_loc_max; list_loc_max.resize(past);
@@ -81,7 +88,24 @@ int main()
 
 		for (size_t i = 0; i < 168; i++) 
 		{
-			list_Y[buffer_pos][i] = freqs[i];
+			list_Y[buffer_pos][i] = log(1.0+freqs[i])/10.0;
+		}
+
+		double sigma = 2.0;
+		for (size_t i = 0; i < 168; i++)
+		{
+			list_smooth[buffer_pos][i] = 0.0;
+		}
+		for (int k = -5; k < 5 + 1; ++k)
+		{
+			double alpha = 1.0 / (sqrt(2.0 * PI) * sigma) * exp(-pow((double)k, 2.0) / (2.0*pow(sigma, 2.0)));
+			for (size_t i = 0; i < 168; i++)
+			{
+				if (i + k >= 0 & i + k < 168)
+				{
+					list_smooth[buffer_pos][i] += list_Y[buffer_pos][i + k] * alpha;
+				}		
+			}
 		}
 		
 		for (size_t i = 1; i < 167; i++)
@@ -89,13 +113,13 @@ int main()
 			list_loc_max[buffer_pos][i] = 0.0;
 			if (list_Y[buffer_pos][i] > list_Y[buffer_pos][i+1] & list_Y[buffer_pos][i] > list_Y[buffer_pos][i - 1])
 			{
-				if (list_Y[buffer_pos][i] > 0.1)
-					list_loc_max[buffer_pos][i] = 0.1*(list_Y[buffer_pos][i] - (list_Y[buffer_pos][i + 1] + list_Y[buffer_pos][i - 1])/2.0)/ (0.05+list_Y[buffer_pos][i]);
-
+				list_loc_max[buffer_pos][i] = 0.05*std::max(0.0, (list_Y[buffer_pos][i]/(0.001+list_smooth[buffer_pos][i])-1.0));
+				/*
 				if (list_Y[buffer_pos][i] < 0.5)
 					list_loc_max[buffer_pos][i] = 0.0;
 				else 
 					list_loc_max[buffer_pos][i] = 0.02;
+				*/
 			}
 			
 		}
@@ -118,7 +142,7 @@ int main()
 		for (size_t k = 1; k < past+1; ++k) 
 		{
 			double delta = 2.1 * (1.0 - ((double)k / (double)past));
-			std::vector<sf::Vertex> list_points = plot(list_Y[(buffer_pos + k) % past], X, "title", delta, 168, -delta, 2.0);
+			std::vector<sf::Vertex> list_points = plot(list_smooth[(buffer_pos + k) % past], X, "title", delta, 168, -delta, 2.0);
 
 			for (unsigned int line_i = 1; line_i < list_points.size(); ++line_i)
 			{
@@ -175,7 +199,7 @@ int main()
 		//===================================================//
 		auto toc = std::chrono::high_resolution_clock::now();
 		double elapsed_time = 1.e-6*std::chrono::duration_cast<std::chrono::nanoseconds>(toc - tic).count();
-		std::this_thread::sleep_for((std::chrono::milliseconds(size_t(1000.0/60.0 - elapsed_time))));
+		std::this_thread::sleep_for((std::chrono::milliseconds(size_t(1000.0/30.0 - elapsed_time))));
 		
 
 	}
