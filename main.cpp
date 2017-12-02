@@ -3,9 +3,9 @@
 #include <iostream>
 #include <thread>
 #include <chrono>
-#include "plot.hpp"
 //#include "fft.hpp"
 #include "MusicRecorder.hpp"
+#include "Plot.hpp"
 
 
 
@@ -16,15 +16,44 @@ int main()
 		printf("error");
 	}
 
-	unsigned int height = 800+400+800;
+	unsigned int height = 800+400;
 	unsigned int length = 800;
 	unsigned int margin = 20;
+
+	std::map<int, std::string> oct = {
+		{ 0, "Do  "},
+		{ 1, "Do# "},
+		{ 2, "Ré  "},
+		{ 3, "Ré# "},
+		{ 4, "Mi  "},
+		{ 5, "Fa  "},
+		{ 6, "Fa# "},
+		{ 7, "Solb"},
+		{ 8, "Sol#"},
+		{ 9, "La  "},
+		{ 10, "La# "},
+		{ 11, "Si  "}
+	};
 
 	sf::ContextSettings settings;
 	settings.antialiasingLevel = 8;
 	sf::RenderWindow window(sf::VideoMode(height, length), "FFT", sf::Style::Default, settings);
 	sf::Font font;
-	//font.loadFromFile("MonospaceTypewriter.ttf");
+	font.loadFromFile("MonospaceTypewriter.ttf");
+
+	std::vector<float> tick;
+	std::vector<std::string> tick_names;
+	int i = 0;
+	while (i <= 168)
+	{
+		tick.push_back(i);
+		int pitch = i / 2 % 12;
+		if (pitch == 0 || pitch == 2 || pitch == 4 || pitch == 5 || pitch == 7 || pitch == 9 || pitch == 11)
+			tick_names.push_back(oct[i/2 % 12]);
+		else
+			tick_names.push_back("");
+		i += 2;
+	}
 
 	double sample_rate = 20000.0;
 	double sample_time = 4096.0 / 20000.0;
@@ -33,7 +62,7 @@ int main()
 	
 	recorder.start((unsigned int)sample_rate);
 	
-	size_t past = 500;
+	size_t past = 200;
 	std::vector<std::vector<double>> list_Y; list_Y.resize(past);
 	for (size_t i = 0; i < past; ++i)
 	{
@@ -101,7 +130,7 @@ int main()
 			double alpha = 1.0 / (sqrt(2.0 * PI) * sigma) * exp(-pow((double)k, 2.0) / (2.0*pow(sigma, 2.0)));
 			for (size_t i = 0; i < 168; i++)
 			{
-				if (i + k >= 0 & i + k < 168)
+				if ((i + k >= 0) & (i + k < 168))
 				{
 					list_smooth[buffer_pos][i] += list_Y[buffer_pos][i + k] * alpha;
 				}		
@@ -111,7 +140,7 @@ int main()
 		for (size_t i = 1; i < 167; i++)
 		{
 			list_loc_max[buffer_pos][i] = 0.0;
-			if (list_Y[buffer_pos][i] > list_Y[buffer_pos][i+1] & list_Y[buffer_pos][i] > list_Y[buffer_pos][i - 1])
+			if ((list_Y[buffer_pos][i] > list_Y[buffer_pos][i+1]) & (list_Y[buffer_pos][i] > list_Y[buffer_pos][i - 1]))
 			{
 				list_loc_max[buffer_pos][i] = 0.05*std::max(0.0, (list_Y[buffer_pos][i]/(0.001+list_smooth[buffer_pos][i])-1.0));
 				/*
@@ -139,10 +168,22 @@ int main()
 			//list_fY[buffer_pos][i] = 0.5*1.0/2.0 * (abs(list_Y[buffer_pos][i] - list_Y[(buffer_pos-1)%past][i]) + (list_Y[buffer_pos][i] - list_Y[(buffer_pos - 1) % past][i])) + 0.5*list_fY[(buffer_pos-1)%past][i];
 		}
 
-		for (size_t k = 1; k < past+1; ++k) 
+		for (int k = 1; k < past+1; ++k) 
 		{
+			Plot<double> plot(&window, X, list_Y[(buffer_pos + k) % past], font);
+			plot.move(past-k, k);
+			if (k == past) {
+				plot.axis(true);
+				plot.xlabel("Pitch");
+				plot.ylabel("");
+				plot.xticks(tick, tick_names, 10);
+
+			}
+				
+			plot.show();
+			/*
 			double delta = 2.1 * (1.0 - ((double)k / (double)past));
-			std::vector<sf::Vertex> list_points = plot(list_smooth[(buffer_pos + k) % past], X, "title", delta, 168, -delta, 2.0);
+			std::vector<sf::Vertex> list_points = plot(list_Y[(buffer_pos + k) % past], X, "title", delta, 168, -delta, 2.0);
 
 			for (unsigned int line_i = 1; line_i < list_points.size(); ++line_i)
 			{
@@ -177,6 +218,7 @@ int main()
 				line[1].color = color;
 				window.draw(line, 2, sf::Lines);
 			}
+			*/
 		}
 
 		buffer_pos = (buffer_pos+1) % past;
